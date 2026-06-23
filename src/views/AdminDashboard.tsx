@@ -168,11 +168,25 @@ export const AdminDashboard: React.FC = () => {
     setLoading(false);
   };
 
-  const loadClientes = async () => {
+  const loadClientes = async (searchVal?: string) => {
     setLoading(true);
-    const { data, error } = await supabase.from('clientes').select('*').order('nome_cliente');
-    if (!error && data) setClientesList(data);
-    setLoading(false);
+    try {
+      let query = supabase.from('clientes').select('*');
+      
+      if (searchVal && searchVal.trim() !== '') {
+        const term = searchVal.trim();
+        query = query.or(`nome_cliente.ilike.%${term}%,codigo_cliente.ilike.%${term}%,canal.ilike.%${term}%`);
+      }
+      
+      const { data, error } = await query.order('nome_cliente').limit(searchVal ? 100 : 1000);
+      if (!error && data) {
+        setClientesList(data);
+      }
+    } catch (err: any) {
+      console.error('Error loading clients:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadFamilias = async () => {
@@ -354,6 +368,16 @@ export const AdminDashboard: React.FC = () => {
       loadProdutos();
     }
   }, [activeTab]);
+
+  // Debounced server-side search for clients in Clientes tab
+  useEffect(() => {
+    if (activeTab === 'clientes') {
+      const delayDebounceFn = setTimeout(() => {
+        loadClientes(searchQuery);
+      }, 400); // 400ms debounce
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchQuery, activeTab]);
 
   // --- SUBMIT HANDLERS ---
   // Create User (Sign Up in Supabase Auth & insertion in Public Profiles)
@@ -1015,11 +1039,17 @@ export const AdminDashboard: React.FC = () => {
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredClientes = clientesList.filter(c => 
-    c.nome_cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.codigo_cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.canal.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredClientes = clientesList.filter(c => {
+    const nome = c.nome_cliente || '';
+    const codigo = c.codigo_cliente || '';
+    const canal = c.canal || '';
+    const query = searchQuery.toLowerCase();
+    return (
+      nome.toLowerCase().includes(query) ||
+      codigo.toLowerCase().includes(query) ||
+      canal.toLowerCase().includes(query)
+    );
+  });
 
   const filteredFamilias = familiasList.filter(f => 
     f.nome.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1734,7 +1764,7 @@ export const AdminDashboard: React.FC = () => {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '1.1rem' }}>Clientes Cadastrados</h3>
-              <button onClick={loadClientes} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}>
+              <button onClick={() => loadClientes()} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}>
                 <RefreshCw size={16} />
               </button>
             </div>
