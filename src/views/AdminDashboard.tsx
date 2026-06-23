@@ -881,7 +881,7 @@ export const AdminDashboard: React.FC = () => {
       'Precisão GPS (m)': p.gps_precisao || '',
     }));
 
-    // 2. Prepare Itens Sheet Data
+    // 2. Prepare Itens Sheet Data (Completo: Visita + Itens)
     const itensData: any[] = [];
     filteredPesquisas.forEach(p => {
       if (p.pesquisa_itens && p.pesquisa_itens.length > 0) {
@@ -889,50 +889,124 @@ export const AdminDashboard: React.FC = () => {
           itensData.push({
             'ID Pesquisa': p.id,
             'Data': new Date(p.data_hora).toLocaleDateString('pt-BR'),
+            'Hora': new Date(p.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             'Vendedor': p.perfis?.nome || '',
-            'Cliente': p.clientes?.nome_cliente || '',
+            'Código Cliente': p.clientes?.codigo_cliente || '',
+            'Nome Cliente': p.clientes?.nome_cliente || '',
+            'Canal': p.clientes?.canal || '',
+            'Subcanal': p.clientes?.subcanal || '',
             'Família': item.produtos?.familias?.nome || '',
             'Marca': item.produtos?.marcas?.nome || '',
             'Produto': item.produtos?.nome || '',
             'Estoque': item.estoque,
             'Medida': item.unidade_medida,
-            'Preço Unidade (R$)': item.preco_unidade !== null ? item.preco_unidade : '',
-            'Preço Caixa Varejo (R$)': item.preco_caixa_varejo !== null ? item.preco_caixa_varejo : '',
-            'Preço Caixa Atacado (R$)': item.preco_caixa_atacado !== null ? item.preco_caixa_atacado : '',
+            'Preço Unidade (R$)': item.preco_unidade !== null && item.preco_unidade !== undefined ? item.preco_unidade : '',
+            'Preço Caixa Varejo (R$)': item.preco_caixa_varejo !== null && item.preco_caixa_varejo !== undefined ? item.preco_caixa_varejo : '',
+            'Preço Caixa Atacado (R$)': item.preco_caixa_atacado !== null && item.preco_caixa_atacado !== undefined ? item.preco_caixa_atacado : '',
             'Observação': item.observacao || '',
+            'Latitude': p.latitude || '',
+            'Longitude': p.longitude || '',
+            'Precisão GPS (m)': p.gps_precisao || '',
           });
         });
       }
     });
 
-    // 3. Create Workbook and Sheets
+    // 3. Create Workbook
     const wb = XLSX.utils.book_new();
     
     const wsPesquisas = XLSX.utils.json_to_sheet(pesquisasData);
-    // Auto-fit columns
-    if (pesquisasData.length > 0) {
-      wsPesquisas['!cols'] = Object.keys(pesquisasData[0]).map(key => ({
-        wch: Math.max(
-          ...pesquisasData.map(row => String((row as any)[key] || '').length),
-          key.length
-        ) + 3
-      }));
-    }
-    XLSX.utils.book_append_sheet(wb, wsPesquisas, 'Visitas');
-
     const wsItens = XLSX.utils.json_to_sheet(itensData);
-    // Auto-fit columns
-    if (itensData.length > 0) {
-      wsItens['!cols'] = Object.keys(itensData[0]).map(key => ({
-        wch: Math.max(
-          ...itensData.map(row => String((row as any)[key] || '').length),
-          key.length
-        ) + 3
-      }));
-    }
-    XLSX.utils.book_append_sheet(wb, wsItens, 'Itens Detalhados');
 
-    // 4. Download File
+    // 4. Formatter helper to apply native cell number formats and widths
+    const formatWorksheet = (ws: any, dataList: any[]) => {
+      if (!ws['!ref']) return;
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      
+      // Post-process cells to assign types and native formats
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = { c: C, r: R };
+          const cellRef = XLSX.utils.encode_cell(cellAddress);
+          const cell = ws[cellRef];
+          if (!cell) continue;
+
+          // Header Row (Row 0)
+          if (R === 0) {
+            continue;
+          }
+
+          // Get Header Name for this column
+          const headerRef = XLSX.utils.encode_cell({ c: C, r: 0 });
+          const header = ws[headerRef]?.v;
+          if (!header) continue;
+
+          // Check if column is currency or integer metrics and format
+          if (
+            header.includes('Preço') || 
+            header.includes('Valor') || 
+            header.includes('(R$)')
+          ) {
+            if (cell.v !== null && cell.v !== undefined && cell.v !== '') {
+              const numVal = Number(cell.v);
+              if (!isNaN(numVal)) {
+                cell.t = 'n';
+                cell.v = numVal;
+                cell.z = 'R$ #,##0.00;[Red]-R$ #,##0.00;"-"';
+              }
+            }
+          } else if (
+            header === 'Estoque' || 
+            header === 'Quantidade Itens' || 
+            header.includes('GPS') || 
+            header.includes('Precisão')
+          ) {
+            if (cell.v !== null && cell.v !== undefined && cell.v !== '') {
+              const numVal = Number(cell.v);
+              if (!isNaN(numVal)) {
+                cell.t = 'n';
+                cell.v = numVal;
+                cell.z = '#,##0';
+              }
+            }
+          }
+        }
+      }
+
+      // Calculate dynamic col widths (Auto-fit)
+      if (dataList.length > 0) {
+        const keys = Object.keys(dataList[0]);
+        ws['!cols'] = keys.map(key => {
+          let maxLen = key.length;
+          dataList.forEach(row => {
+            const val = row[key];
+            if (val !== null && val !== undefined) {
+              let valStr = String(val);
+              // If it's a price column, mock the formatted string length for spacing
+              if (key.includes('Preço') || key.includes('Valor') || key.includes('(R$)')) {
+                const numVal = Number(val);
+                if (!isNaN(numVal)) {
+                  valStr = `R$ ${numVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+              }
+              if (valStr.length > maxLen) {
+                maxLen = valStr.length;
+              }
+            }
+          });
+          return { wch: Math.max(maxLen + 4, 12) }; // Padding of 4, minimum of 12
+        });
+      }
+    };
+
+    formatWorksheet(wsItens, itensData);
+    formatWorksheet(wsPesquisas, pesquisasData);
+
+    // Append sheets (main first so it opens by default)
+    XLSX.utils.book_append_sheet(wb, wsItens, 'Itens Detalhados');
+    XLSX.utils.book_append_sheet(wb, wsPesquisas, 'Resumo de Visitas');
+
+    // 5. Download File
     XLSX.writeFile(wb, `pesquisa_mercado_export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
