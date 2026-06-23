@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -55,6 +55,7 @@ export const PesquisaFluxo: React.FC = () => {
   const [offlineSuccess, setOfflineSuccess] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const isSyncingRef = useRef(false);
 
   // Password Modal State
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -97,59 +98,67 @@ export const PesquisaFluxo: React.FC = () => {
   };
 
   const syncPendingSurveysSilently = async (list: any[]) => {
+    if (isSyncingRef.current) return;
+    if (list.length === 0) return;
+    isSyncingRef.current = true;
     let successCount = 0;
     const remainingList: any[] = [];
 
-    for (const survey of list) {
-      try {
-        const { data: pesquisaObj, error: pError } = await supabase
-          .from('pesquisas')
-          .insert({
-            usuario_id: survey.usuario_id,
-            cliente_id: survey.cliente_id,
-            latitude: survey.latitude,
-            longitude: survey.longitude,
-            gps_precisao: survey.gps_precisao,
-            data_hora: survey.data_hora
-          })
-          .select()
-          .single();
+    try {
+      for (const survey of list) {
+        try {
+          const { data: pesquisaObj, error: pError } = await supabase
+            .from('pesquisas')
+            .insert({
+              usuario_id: survey.usuario_id,
+              cliente_id: survey.cliente_id,
+              latitude: survey.latitude,
+              longitude: survey.longitude,
+              gps_precisao: survey.gps_precisao,
+              data_hora: survey.data_hora
+            })
+            .select()
+            .single();
 
-        if (pError) throw pError;
+          if (pError) throw pError;
 
-        const itemsToInsert = survey.itens.map((item: any) => ({
-          pesquisa_id: pesquisaObj.id,
-          produto_id: item.produto_id,
-          estoque: item.estoque,
-          unidade_medida: item.unidade_medida,
-          preco_unidade: item.preco_unidade,
-          preco_caixa_varejo: item.preco_caixa_varejo,
-          preco_caixa_atacado: item.preco_caixa_atacado,
-          observacao: item.observacao
-        }));
+          const itemsToInsert = survey.itens.map((item: any) => ({
+            pesquisa_id: pesquisaObj.id,
+            produto_id: item.produto_id,
+            estoque: item.estoque,
+            unidade_medida: item.unidade_medida,
+            preco_unidade: item.preco_unidade,
+            preco_caixa_varejo: item.preco_caixa_varejo,
+            preco_caixa_atacado: item.preco_caixa_atacado,
+            observacao: item.observacao
+          }));
 
-        const { error: iError } = await supabase
-          .from('pesquisa_itens')
-          .insert(itemsToInsert);
+          const { error: iError } = await supabase
+            .from('pesquisa_itens')
+            .insert(itemsToInsert);
 
-        if (iError) throw iError;
-        successCount++;
-      } catch (err) {
-        console.error('Silent sync error:', err);
-        remainingList.push(survey);
+          if (iError) throw iError;
+          successCount++;
+        } catch (err) {
+          console.error('Silent sync error:', err);
+          remainingList.push(survey);
+        }
       }
-    }
 
-    localStorage.setItem('pending_pesquisas', JSON.stringify(remainingList));
-    setPendingList(remainingList);
-    setPendingCount(remainingList.length);
+      localStorage.setItem('pending_pesquisas', JSON.stringify(remainingList));
+      setPendingList(remainingList);
+      setPendingCount(remainingList.length);
 
-    if (successCount > 0) {
-      alert(`Sinal restabelecido! Sincronizamos automaticamente ${successCount} pesquisa(s) no servidor.`);
+      if (successCount > 0) {
+        alert(`Sinal restabelecido! Sincronizamos automaticamente ${successCount} pesquisa(s) no servidor.`);
+      }
+    } finally {
+      isSyncingRef.current = false;
     }
   };
 
   const syncPendingSurveys = async () => {
+    if (isSyncingRef.current) return;
     const list = JSON.parse(localStorage.getItem('pending_pesquisas') || '[]');
     if (list.length === 0) return;
 
@@ -158,63 +167,68 @@ export const PesquisaFluxo: React.FC = () => {
       return;
     }
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setSyncStatus('Sincronizando pesquisas pendentes...');
 
     let successCount = 0;
     const remainingList: any[] = [];
 
-    for (const survey of list) {
-      try {
-        const { data: pesquisaObj, error: pError } = await supabase
-          .from('pesquisas')
-          .insert({
-            usuario_id: survey.usuario_id,
-            cliente_id: survey.cliente_id,
-            latitude: survey.latitude,
-            longitude: survey.longitude,
-            gps_precisao: survey.gps_precisao,
-            data_hora: survey.data_hora
-          })
-          .select()
-          .single();
+    try {
+      for (const survey of list) {
+        try {
+          const { data: pesquisaObj, error: pError } = await supabase
+            .from('pesquisas')
+            .insert({
+              usuario_id: survey.usuario_id,
+              cliente_id: survey.cliente_id,
+              latitude: survey.latitude,
+              longitude: survey.longitude,
+              gps_precisao: survey.gps_precisao,
+              data_hora: survey.data_hora
+            })
+            .select()
+            .single();
 
-        if (pError) throw pError;
+          if (pError) throw pError;
 
-        const itemsToInsert = survey.itens.map((item: any) => ({
-          pesquisa_id: pesquisaObj.id,
-          produto_id: item.produto_id,
-          estoque: item.estoque,
-          unidade_medida: item.unidade_medida,
-          preco_unidade: item.preco_unidade,
-          preco_caixa_varejo: item.preco_caixa_varejo,
-          preco_caixa_atacado: item.preco_caixa_atacado,
-          observacao: item.observacao
-        }));
+          const itemsToInsert = survey.itens.map((item: any) => ({
+            pesquisa_id: pesquisaObj.id,
+            produto_id: item.produto_id,
+            estoque: item.estoque,
+            unidade_medida: item.unidade_medida,
+            preco_unidade: item.preco_unidade,
+            preco_caixa_varejo: item.preco_caixa_varejo,
+            preco_caixa_atacado: item.preco_caixa_atacado,
+            observacao: item.observacao
+          }));
 
-        const { error: iError } = await supabase
-          .from('pesquisa_itens')
-          .insert(itemsToInsert);
+          const { error: iError } = await supabase
+            .from('pesquisa_itens')
+            .insert(itemsToInsert);
 
-        if (iError) throw iError;
-        successCount++;
-      } catch (err) {
-        console.error('Error syncing survey:', survey, err);
-        remainingList.push(survey);
+          if (iError) throw iError;
+          successCount++;
+        } catch (err) {
+          console.error('Error syncing survey:', survey, err);
+          remainingList.push(survey);
+        }
       }
-    }
 
-    localStorage.setItem('pending_pesquisas', JSON.stringify(remainingList));
-    setPendingList(remainingList);
-    setPendingCount(remainingList.length);
-    setIsSyncing(false);
-    setSyncStatus(null);
+      localStorage.setItem('pending_pesquisas', JSON.stringify(remainingList));
+      setPendingList(remainingList);
+      setPendingCount(remainingList.length);
 
-    if (successCount > 0) {
-      alert(`Sincronização concluída: ${successCount} pesquisa(s) enviada(s) com sucesso!`);
-    }
-    if (remainingList.length > 0) {
-      alert(`Aviso: ${remainingList.length} pesquisa(s) falharam no envio e permanecem na fila local.`);
+      if (successCount > 0) {
+        alert(`Sincronização concluída: ${successCount} pesquisa(s) enviada(s) com sucesso!`);
+      }
+      if (remainingList.length > 0) {
+        alert(`Aviso: ${remainingList.length} pesquisa(s) falharam no envio e permanecem na fila local.`);
+      }
+    } finally {
+      setIsSyncing(false);
+      setSyncStatus(null);
+      isSyncingRef.current = false;
     }
   };
 
@@ -278,7 +292,24 @@ export const PesquisaFluxo: React.FC = () => {
     };
 
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+
+    // Polling fallback: check connection and sync every 15 seconds
+    const interval = setInterval(() => {
+      if (navigator.onLine) {
+        const existing = localStorage.getItem('pending_pesquisas');
+        if (existing) {
+          const list = JSON.parse(existing);
+          if (list.length > 0) {
+            syncPendingSurveysSilently(list);
+          }
+        }
+      }
+    }, 15000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
   }, []);
 
   // Suggestions search logic with cache fallback
