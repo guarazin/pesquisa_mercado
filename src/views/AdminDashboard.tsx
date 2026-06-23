@@ -962,20 +962,11 @@ export const AdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="app-container animate-fade">
-      {/* Header */}
-      <div 
-        className="glass-panel" 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          marginBottom: '20px', 
-          padding: '12px 20px',
-          borderRadius: 'var(--border-radius-md)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div className="admin-layout animate-fade">
+      {/* Left Sidebar (Desktop side nav) */}
+      <aside className="admin-sidebar">
+        {/* Logo Brand Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
           <div style={{
             width: '42px',
             height: '42px',
@@ -989,127 +980,168 @@ export const AdminDashboard: React.FC = () => {
             <img src="/img/Logo Guaracamp.png" alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
           </div>
           <div>
-            <span className="badge badge-admin" style={{ marginBottom: '2px', fontSize: '0.65rem', padding: '1px 6px' }}>Administrativo</span>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800 }}>Olá, {profile?.nome || 'Admin'}</h2>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.02em', margin: 0 }}>
+              Guara<span style={{ color: 'var(--primary)' }}>camp</span>
+            </h1>
+            <span className="badge badge-admin" style={{ fontSize: '0.55rem', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Painel Geral</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <ThemeToggle />
-          <button 
-            onClick={() => setShowPasswordModal(true)} 
-            className="btn btn-secondary" 
-            style={{ 
-              width: '40px', 
-              height: '40px', 
-              minHeight: 'auto', 
-              padding: 0, 
-              borderRadius: 'var(--border-radius-full)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'var(--bg-secondary)'
-            }}
-            title="Alterar Senha"
-          >
-            <KeyRound size={16} color="var(--primary)" />
-          </button>
-          <button 
-            onClick={signOut} 
-            className="btn btn-secondary" 
-            style={{ 
-              width: '40px', 
-              height: '40px', 
-              minHeight: 'auto', 
-              padding: 0, 
-              borderRadius: 'var(--border-radius-full)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'var(--bg-secondary)',
-              borderColor: 'rgba(239, 68, 68, 0.2)'
-            }}
-            title="Sair"
-          >
-            <LogOut size={16} className="text-danger" />
-          </button>
-        </div>
-      </div>
 
-      {/* Tabs Menu - Horizontal Scrollable Row for Mobile */}
-      <div 
-        className="glass-panel" 
-        style={{
-          display: 'flex',
-          gap: '4px',
-          padding: '4px',
-          overflowX: 'auto',
-          marginBottom: '20px',
-          borderRadius: 'var(--border-radius-md)',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
-      >
-        {[
-          { id: 'pesquisas', label: 'Pesquisas', icon: <ShoppingBag size={16} />, visible: true },
-          { id: 'clientes', label: 'Clientes', icon: <Building size={16} />, visible: true },
-          { id: 'usuarios', label: 'Usuários', icon: <Users size={16} />, visible: profile?.regra !== 'Gerente' },
-          { id: 'familias', label: 'Famílias', icon: <FolderKanban size={16} />, visible: profile?.regra !== 'Gerente' },
-          { id: 'marcas', label: 'Marcas', icon: <Tag size={16} />, visible: profile?.regra !== 'Gerente' },
-          { id: 'produtos', label: 'Produtos', icon: <ShoppingBag size={16} />, visible: profile?.regra !== 'Gerente' },
-        ].filter(tab => tab.visible).map((tab) => (
+        {/* User Card inside Sidebar */}
+        <div className="glass-panel" style={{ padding: '14px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Usuário Conectado</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>{profile?.nome}</div>
+          <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+            <span className={`badge badge-${profile?.regra.toLowerCase()}`} style={{ fontSize: '0.55rem', padding: '1px 5px' }}>
+              {profile?.regra}
+            </span>
+          </div>
+        </div>
+
+        {/* Navigation Sidebar List */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+          {[
+            { id: 'pesquisas', label: 'Pesquisas', icon: <ShoppingBag size={18} />, visible: true },
+            { id: 'clientes', label: 'Clientes', icon: <Building size={18} />, visible: true },
+            { id: 'usuarios', label: 'Usuários', icon: <Users size={18} />, visible: profile?.regra !== 'Gerente' },
+            { id: 'familias', label: 'Famílias', icon: <FolderKanban size={18} />, visible: profile?.regra !== 'Gerente' },
+            { id: 'marcas', label: 'Marcas', icon: <Tag size={18} />, visible: profile?.regra !== 'Gerente' },
+            { id: 'produtos', label: 'Produtos', icon: <ShoppingBag size={18} />, visible: profile?.regra !== 'Gerente' },
+          ].filter(tab => tab.visible).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabType)}
+              className="btn btn-secondary"
+              style={{
+                width: '100%',
+                minHeight: '44px',
+                height: '44px',
+                padding: '0 16px',
+                fontSize: '0.9rem',
+                fontWeight: '700',
+                borderRadius: 'var(--border-radius-md)',
+                backgroundColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : 'var(--text-secondary)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: '12px',
+                transition: 'all var(--transition-normal)',
+                boxShadow: activeTab === tab.id ? '0 4px 10px rgba(16, 185, 129, 0.25)' : 'none',
+              }}
+            >
+              <span style={{ color: activeTab === tab.id ? '#ffffff' : 'var(--primary)', display: 'flex', alignItems: 'center' }}>
+                {tab.icon}
+              </span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer Actions inside Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
-            className="btn"
+            onClick={() => setShowPasswordModal(true)}
+            className="btn btn-secondary"
             style={{
-              flexShrink: 0,
-              width: 'auto',
+              width: '100%',
               minHeight: '40px',
               height: '40px',
-              padding: '0 18px',
+              padding: '0 14px',
               fontSize: '0.85rem',
-              fontWeight: '700',
-              borderRadius: 'calc(var(--border-radius-md) - 4px)',
-              backgroundColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
-              color: activeTab === tab.id ? '#ffffff' : 'var(--text-secondary)',
-              boxShadow: activeTab === tab.id ? '0 4px 10px rgba(16, 185, 129, 0.25)' : 'none',
-              border: 'none',
+              fontWeight: '600',
+              borderRadius: 'var(--border-radius-md)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all var(--transition-normal)'
+              justifyContent: 'flex-start',
+              gap: '10px',
+              backgroundColor: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)'
             }}
           >
-            {tab.icon}
-            {tab.label}
+            <KeyRound size={16} color="var(--primary)" />
+            <span>Alterar Senha</span>
           </button>
-        ))}
-      </div>
-
-      {/* Notifications */}
-      {successMsg && (
-        <div className="toast toast-success" style={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', width: '100%', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Check size={18} />
-            <span>{successMsg}</span>
-          </div>
+          <button
+            onClick={signOut}
+            className="btn btn-secondary"
+            style={{
+              width: '100%',
+              minHeight: '40px',
+              height: '40px',
+              padding: '0 14px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              borderRadius: 'var(--border-radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              gap: '10px',
+              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+              border: '1px solid rgba(239, 68, 68, 0.12)',
+              color: 'var(--danger)'
+            }}
+          >
+            <LogOut size={16} />
+            <span>Sair</span>
+          </button>
         </div>
-      )}
+      </aside>
 
-      {errorMsg && (
-        <div className="toast toast-danger" style={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', width: '100%', marginBottom: '16px' }}>
+      {/* Right side content */}
+      <main className="admin-main">
+        {/* Topbar */}
+        <header className="admin-topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertCircle size={18} />
-            <span>{errorMsg}</span>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '800', textTransform: 'capitalize', letterSpacing: '-0.015em' }}>
+              Painel Geral / {activeTab}
+            </h2>
           </div>
-        </div>
-      )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Global Search Bar input in Topbar */}
+            <div style={{ position: 'relative', width: '220px' }}>
+              <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Busca rápida..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ paddingLeft: '34px', height: '36px', fontSize: '0.85rem', borderRadius: 'var(--border-radius-full)' }}
+              />
+            </div>
+            <ThemeToggle />
+          </div>
+        </header>
 
-      {/* TAB CONTENT */}
+        {/* Content Container */}
+        <div className="admin-content">
+          
+          {/* Notifications */}
+          {successMsg && (
+            <div className="toast toast-success" style={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', width: '100%', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Check size={18} />
+                <span>{successMsg}</span>
+              </div>
+            </div>
+          )}
 
-      {/* 0. TAB PESQUISAS (Module 2) */}
-      {activeTab === 'pesquisas' && (
-        <div className="animate-fade">
+          {errorMsg && (
+            <div className="toast toast-danger" style={{ position: 'relative', bottom: 'auto', left: 'auto', transform: 'none', width: '100%', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={18} />
+                <span>{errorMsg}</span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT */}
+
+          {/* 0. TAB PESQUISAS (Module 2) */}
+          {activeTab === 'pesquisas' && (
+            <div className="animate-fade">
           
           {/* A. INDICADORES SIMPLES */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
@@ -1959,6 +1991,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+        </div>
+      </main>
 
       {/* EDITING GENERIC MODAL */}
       {editingItem && (
